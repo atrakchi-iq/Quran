@@ -3,9 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>المصحف المسموع</title>
+<title>جمعة جاد الله - القرآن بدون انترنت</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#292B27">
+<script>
+(function(){try{var t=localStorage.getItem("fx-theme");if(t!=="paper"&&t!=="night"){t=matchMedia("(prefers-color-scheme: dark)").matches?"night":"paper";}document.documentElement.setAttribute("data-theme",t);var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute("content",t==="night"?"#141513":"#292B27");}catch(e){}})();
+</script>
 <link rel="icon" sizes="32x32" href="icons/favicon-32.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <style>
@@ -23,7 +26,7 @@
   --verse:rgba(30,107,102,.08);--word:rgba(30,107,102,.24);
   --bad:#A33A2C
 }
-@media (prefers-color-scheme:dark){:root{
+html[data-theme="night"]{
   --bg:#1E1F1C;--surface:#252622;--surface-2:#2C2D29;--ink:#ECE7DC;--muted:#A6A196;
   --line:#3A3B36;--line-strong:#4A4B45;
   --accent:#7FC4BA;--on-accent:#14201E;
@@ -31,7 +34,7 @@
   --grid:rgba(236,231,220,.05);
   --verse:rgba(127,196,186,.09);--word:rgba(127,196,186,.30);
   --bad:#E08A7B
-}}
+}
 *{box-sizing:border-box}
 html{height:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:Cairo,"Segoe UI",Tahoma,sans-serif;font-size:16px}
@@ -41,7 +44,6 @@ header :focus-visible,footer :focus-visible{outline-color:var(--sage)}
 /* الشريط العلوي: حديد داكن */
 header{position:sticky;top:0;z-index:5;background:var(--band);color:var(--band-ink);border-bottom:3px solid var(--sage);padding:calc(8px + env(safe-area-inset-top)) 14px 12px}
 .brand{display:flex;align-items:center;gap:9px;font-weight:600;font-size:1rem;margin:0 0 9px}
-.sq{display:inline-block;width:11px;height:11px;background:var(--sage);flex:none}
 .ctl{display:flex;flex-wrap:wrap;gap:8px;max-width:760px;margin:0 auto}
 .brand{max-width:760px;margin-inline:auto}
 select,button{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line-strong);border-radius:4px;padding:0 12px;min-height:44px}
@@ -51,6 +53,9 @@ select{appearance:none;-webkit-appearance:none;padding-inline-end:34px;
   background-repeat:no-repeat;background-position:left 12px center}
 header select{background-color:var(--band-2);color:var(--band-ink);border-color:var(--band-line)}
 header option{background:var(--band-2);color:var(--band-ink)}
+#thm{margin-inline-start:auto;flex:none;width:44px;padding:0;display:inline-flex;align-items:center;justify-content:center;background:transparent;color:var(--band-ink);border-color:var(--band-line)}
+#thm:hover{border-color:var(--sage);color:var(--sage)}
+#thm svg{width:20px;height:20px}
 #surah{flex:1 1 100%}
 #reciter{flex:1 1 150px;min-width:0}
 #speed{flex:0 0 84px;min-width:0;padding-inline-end:28px}
@@ -66,7 +71,6 @@ main{max-width:760px;margin:0 auto;padding:18px 18px calc(96px + env(safe-area-i
   background-color:var(--surface);
   background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:26px 26px}
 #title{font-family:"Amiri Quran",serif;font-size:2.1rem;line-height:1.5}
-#title::before{content:"";display:inline-block;width:13px;height:13px;background:var(--accent);margin-inline-start:12px;vertical-align:middle;position:relative;top:-3px}
 
 /* أدوات التحميل */
 #tools{display:flex;flex-wrap:wrap;gap:10px;align-items:stretch;margin:0 0 18px}
@@ -108,10 +112,10 @@ main{max-width:760px;margin:0 auto;padding:18px 18px calc(96px + env(safe-area-i
 /* الدعاء للمؤذن */
 .ded{margin:34px 0 0;padding:16px 16px;text-align:center;font-weight:600;line-height:2;border-top:1.5px solid var(--ink);
   background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:26px 26px}
-.ded::before{content:"";display:inline-block;width:10px;height:10px;background:var(--copper);margin-inline-start:10px}
 
 .src{text-align:center;color:var(--muted);font-size:.85rem;line-height:2;margin-top:0;border-top:1px solid var(--line-strong);padding-top:14px}
 .src a{color:var(--accent)}
+.ver{display:inline-block;margin-top:2px;font-size:.8rem;font-variant-numeric:tabular-nums}
 
 /* شريط التشغيل السفلي: حديد داكن */
 footer{position:fixed;bottom:0;inset-inline:0;background:var(--band);color:var(--band-ink);border-top:3px solid var(--sage);padding:10px 14px calc(10px + env(safe-area-inset-bottom));display:flex;gap:12px;align-items:center}
@@ -124,7 +128,7 @@ footer{position:fixed;bottom:0;inset-inline:0;background:var(--band);color:var(-
 <script src="splash.js"></script>
 <script src="quran-data.js"></script>
 <header>
-  <div class="brand"><i class="sq"></i><span>المصحف المسموع</span></div>
+  <div class="brand"><span>جمعة جاد الله - القرآن بدون انترنت</span><button id="thm" type="button" aria-label="الوضع الداكن"></button></div>
   <div class="ctl">
     <select id="surah" aria-label="السورة"></select>
     <select id="reciter" aria-label="القارئ">
@@ -160,10 +164,11 @@ footer{position:fixed;bottom:0;inset-inline:0;background:var(--band);color:var(-
     <span id="st" role="status"></span>
   </div>
   <div id="text"><div id="msg">جارٍ التحميل…</div></div>
-  <p class="ded">«لا تنسوا مؤذن مسجد الحلواني، السيد جمعة جاد الله الشريف، من صالح دعائكم.»</p>
+  <p class="ded">«لا تنسوا مؤذن مسجد الحلواني، السيد جمعة جاد الله الشريف، من صالح دعائكم»</p>
   <p class="src">النص: <a href="https://quranenc.com" target="_blank" rel="noopener">موسوعة القرآن الكريم</a> (مضمَّن في التطبيق) · الصوت والتوقيت: <a href="https://quran.com" target="_blank" rel="noopener">Quran.com</a> (عند التحميل) · الخط: Amiri Quran وCairo (مضمَّنان)<br>
   <a href="/privacy.html">سياسة الخصوصية</a> · <a href="/terms.html">اتفاقية الاستخدام</a><br>
-  شكر وتقدير للمصدر والمطوّر: <a href="https://www.atrakchi.com/" target="_blank" rel="noopener">داود الاطرقجي للاستشارات الهندسية</a> — <a href="mailto:info@atrakchi.com">info@atrakchi.com</a></p>
+  <a href="https://www.atrakchi.com/" target="_blank" rel="noopener">داود الاطرقجي للاستشارات الهندسية</a> — <a href="mailto:info@atrakchi.com">info@atrakchi.com</a><br>
+  <span class="ver" id="ver">رقم التحديث: ٦ · تأريخ التحديث: ١٠ نوفمبر ٢٠٢٦</span></p>
 </main>
 <footer>
   <span id="time">0:00</span>
@@ -292,12 +297,30 @@ async function saveSurah(rec, s, onProg){
   try{ navigator.storage && navigator.storage.persist && navigator.storage.persist(); }catch(e){}
 }
 
+/* ---------- المظهر: فاتح / داكن (fx-theme) ---------- */
+const MOON = SV('<path d="M20 14.5A8 8 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5z"/>');
+const SUN = SV('<circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/>');
+function applyTheme(t){
+  document.documentElement.setAttribute("data-theme", t);
+  const m = document.querySelector('meta[name="theme-color"]'); if(m) m.setAttribute("content", t === "night" ? "#141513" : "#292B27");
+  $("thm").innerHTML = t === "night" ? SUN : MOON;
+  $("thm").setAttribute("aria-label", t === "night" ? "الوضع الفاتح" : "الوضع الداكن");
+  $("thm").title = t === "night" ? "الوضع الفاتح" : "الوضع الداكن";
+}
+$("thm").onclick = () => {
+  const t = document.documentElement.getAttribute("data-theme") === "night" ? "paper" : "night";
+  try{ localStorage.setItem("fx-theme", t); }catch(e){}
+  applyTheme(t);
+};
+
 /* ---------- الواجهة ---------- */
 function init(){
+  applyTheme(document.documentElement.getAttribute("data-theme") === "night" ? "night" : "paper");
   $("dl").querySelector(".ic").innerHTML = ICON.dl; $("dlAll").querySelector(".ic").innerHTML = ICON.dl;
   $("surah").innerHTML = NAMES.map((n, i) => `<option value="${i+1}">${toAr(i+1)}. ${n}</option>`).join("");
   try{
     const saved = localStorage.getItem("surah"); if(saved) $("surah").value = saved;
+    const q = new URLSearchParams(location.search).get("surah"); if(q && +q>=1 && +q<=114) $("surah").value = String(+q);
     const r = localStorage.getItem("reciter"); if(r) $("reciter").value = r;
   }catch(e){}
   load();

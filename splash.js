@@ -20,7 +20,6 @@
   '#qsp .ph img{width:100%;height:100%;object-fit:cover;display:block;border-radius:1px}' +
   '#qsp .tx{font-size:1.35rem;font-weight:600;line-height:2.1;margin:0 0 16px;padding-top:14px;border-top:1.5px solid #C99A70}' +
   '#qsp .gf{font-size:.85rem;color:#A6A196;margin:0}' +
-  '#qsp .gf::before{content:"";display:inline-block;width:9px;height:9px;background:#C99A70;margin-left:9px}' +
   '#qsp .sk{margin-top:16px;font-size:.85rem;color:#A3C4AC;visibility:hidden}' +
   '#qsp .sk.on{visibility:visible}';
 
@@ -28,7 +27,7 @@
   '<div class="in">' +
   '<p class="bsm">بسم الله الرحمن الرحيم</p>' +
   '<div class="ph"><img id="qspImg" alt=""></div>' +
-  '<p class="tx">«لا تنسوا مؤذن مسجد الحلواني، السيد جمعة جاد الله الشريف، من صالح دعائكم.»</p>' +
+  '<p class="tx">«لا تنسوا مؤذن مسجد الحلواني، السيد جمعة جاد الله الشريف، من صالح دعائكم»</p>' +
   '<p class="gf">إهداءٌ من المطوّر: داود الاطرقجي للاستشارات الهندسية</p>' +
   '<p class="sk" id="qspSk">اضغط في أي مكان للمتابعة</p>' +
   '</div>';
