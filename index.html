@@ -8,9 +8,10 @@
 <meta name="theme-color" content="#292B27">
 <link rel="icon" sizes="32x32" href="icons/favicon-32.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Cairo:wght@400;600&display=swap" rel="stylesheet">
 <style>
+@font-face{font-family:"Amiri Quran";src:url(fonts/amiri-quran-arabic-400-normal.woff2) format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:Cairo;src:url(fonts/cairo-arabic-400-normal.woff2) format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:Cairo;src:url(fonts/cairo-arabic-600-normal.woff2) format("woff2");font-weight:600;font-display:swap}
 :root{--bg:#F2EEE5;--ink:#292B27;--muted:#66655E;--line:#DDD6C8;--panel:#FBF9F4;--verse:rgba(30,107,102,.08);--word:rgba(30,107,102,.22);--accent:#1E6B66;--on-accent:#ffffff;--band:#292B27;--band-ink:#F2EEE5;--band-field:#34362F;--band-line:#4A4B45}
 @media (prefers-color-scheme:dark){:root{--bg:#1E1F1C;--ink:#ECE7DC;--muted:#A6A196;--line:#3A3B36;--panel:#252622;--verse:rgba(127,196,186,.08);--word:rgba(127,196,186,.28);--accent:#7FC4BA;--on-accent:#14201E;--band:#141513;--band-ink:#ECE7DC;--band-field:#2C2D29;--band-line:#4A4B45}}
 *{box-sizing:border-box}
@@ -35,12 +36,16 @@ main{max-width:760px;margin:0 auto;padding:22px 18px calc(90px + env(safe-area-i
 footer{position:fixed;bottom:0;inset-inline:0;background:var(--bg);border-top:1px solid var(--line);padding:8px 14px calc(8px + env(safe-area-inset-bottom));display:flex;gap:10px;align-items:center}
 #bar{flex:1;accent-color:var(--accent)}
 #time{color:var(--muted);font-size:.85rem;min-width:44px;direction:ltr}
+#tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;margin:0 0 14px}
+#tools button{font-size:.85rem;padding:5px 10px}
+#st{width:100%;text-align:center;color:var(--muted);font-size:.85rem;min-height:1.4em}
 .src{text-align:center;color:var(--muted);font-size:.85rem;line-height:2;margin-top:30px;border-top:1.5px solid var(--ink);padding-top:14px}
 .src a{color:var(--accent)}
 </style>
 </head>
 <body>
 <script src="splash.js"></script>
+<script src="quran-data.js"></script>
 <header>
   <select id="surah" aria-label="السورة"></select>
   <select id="reciter" aria-label="القارئ">
@@ -58,9 +63,14 @@ footer{position:fixed;bottom:0;inset-inline:0;background:var(--bg);border-top:1p
   <button id="play" disabled>تشغيل</button>
 </header>
 <main>
+  <div id="tools">
+    <button id="dl" disabled>تحميل التلاوة للاستخدام دون إنترنت</button>
+    <button id="dlAll">تحميل كل السور</button>
+    <span id="st" role="status"></span>
+  </div>
   <div id="title"></div>
   <div id="text"><div id="msg">جارٍ التحميل…</div></div>
-  <p class="src">النص والصوت والتوقيت: <a href="https://quran.com" target="_blank" rel="noopener">Quran.com</a> · الخط: Amiri Quran وCairo (Google Fonts)<br>
+  <p class="src">النص: <a href="https://quranenc.com" target="_blank" rel="noopener">موسوعة القرآن الكريم</a> (مضمَّن في التطبيق) · الصوت والتوقيت: <a href="https://quran.com" target="_blank" rel="noopener">Quran.com</a> (عند التحميل) · الخط: Amiri Quran وCairo (مضمَّنان)<br>
   <a href="/privacy.html">سياسة الخصوصية</a> · <a href="/terms.html">اتفاقية الاستخدام</a><br>
   شكر وتقدير للمصدر والمطوّر: <a href="https://www.atrakchi.com/" target="_blank" rel="noopener">داود الاطرقجي للاستشارات الهندسية</a> — <a href="mailto:info@atrakchi.com">info@atrakchi.com</a></p>
 </main>
@@ -74,58 +84,129 @@ footer{position:fixed;bottom:0;inset-inline:0;background:var(--bg);border-top:1p
 const API = "https://api.quran.com/api/v4";
 const $ = id => document.getElementById(id);
 const audio = $("audio");
-let verses = [], stamps = [], curV = null, curW = null, raf = 0;
+const NAMES = window.QURAN.n, TEXT = window.QURAN.v;
+let verses = [], stamps = [], curV = null, curW = null, raf = 0, objUrl = null, loadId = 0, busy = false, stopAll = false;
 
 const toAr = n => String(n).replace(/\d/g, d => "٠١٢٣٤٥٦٧٨٩"[d]);
 const fmt = s => Math.floor(s/60) + ":" + String(Math.floor(s%60)).padStart(2, "0");
+const say = t => { $("st").textContent = t || ""; };
 
+/* ---------- التخزين المحلي للتلاوات (IndexedDB) ---------- */
+const DB = {
+  open(){ return this._p || (this._p = new Promise((res, rej) => {
+    const r = indexedDB.open("quran-offline", 1);
+    r.onupgradeneeded = () => r.result.createObjectStore("a");
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+  })); },
+  async run(mode, fn){
+    const db = await this.open();
+    return new Promise((res, rej) => {
+      const t = db.transaction("a", mode); const rq = fn(t.objectStore("a"));
+      t.oncomplete = () => res(rq && rq.result); t.onerror = t.onabort = () => rej(t.error);
+    });
+  },
+  get(k){ return this.run("readonly", s => s.get(k)); },
+  set(k, v){ return this.run("readwrite", s => s.put(v, k)); },
+  del(k){ return this.run("readwrite", s => s.delete(k)); },
+  keys(){ return this.run("readonly", s => s.getAllKeys()); }
+};
+const keyOf = (rec, s) => rec + ":" + s;
+
+/* ---------- الشبكة (اختيارية: للتحميل فقط) ---------- */
 async function api(path){
   const r = await fetch(API + path);
   if(!r.ok) throw new Error(r.status);
   return r.json();
 }
+async function getRecitation(rec, s){
+  const a = await api(`/chapter_recitations/${rec}/${s}?segments=true`);
+  let url = a.audio_file.audio_url;
+  if(!/^https?:/.test(url)) url = "https://verses.quran.com/" + url.replace(/^\/+/, "");
+  return { url, stamps: a.audio_file.timestamps || [] };
+}
+async function fetchBlob(url, onProg){
+  const r = await fetch(url);
+  if(!r.ok) throw new Error(r.status);
+  const total = +r.headers.get("content-length") || 0;
+  if(!r.body || !total){ return r.blob(); }
+  const rd = r.body.getReader(), parts = []; let got = 0;
+  for(;;){
+    const {done, value} = await rd.read();
+    if(done) break;
+    parts.push(value); got += value.length;
+    if(onProg) onProg(got / total);
+  }
+  return new Blob(parts, {type: r.headers.get("content-type") || "audio/mpeg"});
+}
+async function saveSurah(rec, s, onProg){
+  const {url, stamps: st} = await getRecitation(rec, s);
+  const blob = await fetchBlob(url, onProg);
+  await DB.set(keyOf(rec, s), {blob, stamps: st});
+  try{ navigator.storage && navigator.storage.persist && navigator.storage.persist(); }catch(e){}
+}
 
-async function init(){
+/* ---------- الواجهة ---------- */
+function init(){
+  $("surah").innerHTML = NAMES.map((n, i) => `<option value="${i+1}">${toAr(i+1)}. ${n}</option>`).join("");
   try{
-    const d = await api("/chapters?language=ar");
-    $("surah").innerHTML = d.chapters.map(c => `<option value="${c.id}">${toAr(c.id)}. ${c.name_arabic}</option>`).join("");
-    const saved = localStorage.getItem("surah");
-    if(saved) $("surah").value = saved;
-    const r = localStorage.getItem("reciter");
-    if(r) $("reciter").value = r;
-  }catch(e){ return fail("تعذّر تحميل قائمة السور. تحقق من الاتصال."); }
+    const saved = localStorage.getItem("surah"); if(saved) $("surah").value = saved;
+    const r = localStorage.getItem("reciter"); if(r) $("reciter").value = r;
+  }catch(e){}
   load();
 }
 
-function fail(t){ $("text").innerHTML = `<div id="msg">${t}</div>`; }
+async function marks(){
+  let keys = [];
+  try{ keys = await DB.keys(); }catch(e){}
+  const rec = $("reciter").value, have = new Set(keys.filter(k => k.startsWith(rec + ":")).map(k => k.split(":")[1]));
+  [...$("surah").options].forEach((o, i) => { o.textContent = `${toAr(i+1)}. ${NAMES[i]}${have.has(String(i+1)) ? "  ✓" : ""}`; });
+  return have;
+}
 
 async function load(){
-  audio.pause(); cancelAnimationFrame(raf);
+  const id = ++loadId;
+  audio.pause(); cancelAnimationFrame(raf); clearOn();
+  if(objUrl){ URL.revokeObjectURL(objUrl); objUrl = null; }
+  audio.removeAttribute("src"); stamps = [];
   $("play").disabled = true; $("play").textContent = "تشغيل";
-  $("text").innerHTML = '<div id="msg">جارٍ التحميل…</div>';
   const s = $("surah").value, rec = $("reciter").value;
   try{ localStorage.setItem("surah", s); localStorage.setItem("reciter", rec); }catch(e){}
-  try{
-    const [t, a] = await Promise.all([
-      api(`/verses/by_chapter/${s}?words=true&word_fields=text_uthmani&per_page=300&fields=verse_key`),
-      api(`/chapter_recitations/${rec}/${s}?segments=true`)
-    ]);
-    verses = t.verses;
-    stamps = a.audio_file.timestamps || [];
-    audio.src = a.audio_file.audio_url;
-    audio.playbackRate = +$("speed").value;
-    render();
-    $("title").textContent = $("surah").selectedOptions[0].textContent.replace(/^[^.]+\.\s*/, "سورة ");
+
+  verses = TEXT[s-1];
+  render();
+  $("title").textContent = "سورة " + NAMES[s-1];
+  scrollTo(0, 0);
+  say("");
+
+  let saved = null;
+  try{ saved = await DB.get(keyOf(rec, s)); }catch(e){}
+  if(id !== loadId) return;
+  const have = await marks(); if(id !== loadId) return;
+  $("dl").disabled = busy;
+  $("dl").textContent = saved ? "التلاوة محمّلة ✓ (اضغط للحذف)" : "تحميل التلاوة للاستخدام دون إنترنت";
+
+  if(saved){
+    stamps = saved.stamps;
+    objUrl = URL.createObjectURL(saved.blob);
+    audio.src = objUrl; audio.playbackRate = +$("speed").value;
     $("play").disabled = false;
-  }catch(e){ fail("تعذّر تحميل السورة أو التلاوة. جرّب قارئًا آخر."); }
+  }else if(navigator.onLine){
+    try{
+      const r = await getRecitation(rec, s);
+      if(id !== loadId) return;
+      stamps = r.stamps; audio.src = r.url; audio.playbackRate = +$("speed").value;
+      $("play").disabled = false;
+    }catch(e){ if(id === loadId) say("تعذّر تحميل التلاوة. جرّب قارئًا آخر."); }
+  }else{
+    say("لا يوجد اتصال. النص متاح للقراءة، أما التلاوة فتحتاج إلى تحميل مسبق (السور المحمّلة عليها علامة ✓).");
+  }
 }
 
 function render(){
-  $("text").innerHTML = verses.map(v => {
-    const ws = v.words.map(w => w.char_type_name === "end"
-      ? `<span class="n">﴿${toAr(w.position ? v.verse_number : v.verse_number)}﴾</span>`
-      : `<span class="w" data-p="${w.position}">${w.text_uthmani}</span>`).join(" ");
-    return `<span class="v" data-k="${v.verse_key}">${ws}</span> `;
+  $("text").innerHTML = verses.map((t, i) => {
+    const n = i + 1;
+    const ws = t.split(" ").map((w, j) => `<span class="w" data-p="${j+1}">${w}</span>`).join(" ");
+    return `<span class="v" data-k="${$("surah").value}:${n}">${ws} <span class="n">﴿${toAr(n)}﴾</span></span> `;
   }).join("");
   curV = curW = null;
 }
@@ -167,6 +248,45 @@ function tick(){
   if(!audio.paused) raf = requestAnimationFrame(tick);
 }
 
+/* ---------- أزرار التحميل ---------- */
+$("dl").onclick = async () => {
+  if(busy) return;
+  const s = $("surah").value, rec = $("reciter").value;
+  let saved = null; try{ saved = await DB.get(keyOf(rec, s)); }catch(e){}
+  if(saved){
+    if(confirm("حذف التلاوة المحمّلة لهذه السورة من الجهاز؟")){ await DB.del(keyOf(rec, s)); load(); }
+    return;
+  }
+  if(!navigator.onLine){ say("يلزم اتصال بالإنترنت لتحميل التلاوة."); return; }
+  busy = true; $("dl").disabled = true; $("dlAll").disabled = true;
+  try{
+    await saveSurah(rec, s, p => say("جارٍ التحميل… " + toAr(Math.round(p*100)) + "٪"));
+    say("تم التحميل. التلاوة متاحة الآن دون إنترنت.");
+    if(audio.paused && $("surah").value === s && $("reciter").value === rec) await load();
+  }catch(e){ say("تعذّر التحميل. تحقق من الاتصال وحاول مرة أخرى."); }
+  busy = false; $("dl").disabled = false; $("dlAll").disabled = false;
+  if($("dlAll").textContent !== "تحميل كل السور") $("dlAll").textContent = "تحميل كل السور";
+};
+
+$("dlAll").onclick = async () => {
+  if(busy){ stopAll = true; say("جارٍ الإيقاف بعد السورة الحالية…"); return; }
+  if(!navigator.onLine){ say("يلزم اتصال بالإنترنت للتحميل."); return; }
+  if(!confirm("سيتم تحميل جميع سور هذا القارئ إلى جهازك. الحجم كبير (قد يبلغ مئات الميغابايت أو أكثر)، ويُفضَّل استخدام شبكة Wi-Fi. المتابعة؟")) return;
+  const rec = $("reciter").value;
+  busy = true; stopAll = false; $("dl").disabled = true; $("dlAll").textContent = "إيقاف التحميل";
+  let have = new Set(); try{ have = new Set((await DB.keys()).filter(k => k.startsWith(rec + ":"))); }catch(e){}
+  let failed = false;
+  for(let s = 1; s <= 114 && !stopAll; s++){
+    if(have.has(keyOf(rec, s))) continue;
+    try{
+      await saveSurah(rec, s, p => say(`سورة ${NAMES[s-1]} — ${toAr(s)}/١١٤ — ${toAr(Math.round(p*100))}٪`));
+    }catch(e){ failed = true; break; }
+  }
+  busy = false; $("dl").disabled = false; $("dlAll").textContent = "تحميل كل السور";
+  say(failed ? "توقّف التحميل (تعذّر الاتصال). السور المحمّلة محفوظة، ويمكنك المتابعة لاحقًا." : stopAll ? "تم الإيقاف. السور المحمّلة محفوظة." : "اكتمل تحميل جميع السور.");
+  if(audio.paused) load(); else marks();
+};
+
 $("play").onclick = () => audio.paused ? audio.play() : audio.pause();
 audio.onplay = () => { $("play").textContent = "إيقاف"; raf = requestAnimationFrame(tick); };
 audio.onpause = () => { $("play").textContent = "تشغيل"; };
@@ -178,11 +298,13 @@ $("surah").onchange = load;
 $("reciter").onchange = load;
 $("text").onclick = e => {
   const v = e.target.closest(".v");
-  if(!v) return;
+  if(!v || $("play").disabled) return;
   const st = stamps.find(x => x.verse_key === v.dataset.k);
   if(st){ audio.currentTime = st.timestamp_from / 1000; audio.play(); }
 };
 
+if("serviceWorker" in navigator){ addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {})); }
+addEventListener("online", () => { if(!busy && audio.paused) load(); });
 init();
 </script>
 </body>
