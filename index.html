@@ -38,6 +38,11 @@ footer{position:fixed;bottom:0;inset-inline:0;background:var(--bg);border-top:1p
 #time{color:var(--muted);font-size:.85rem;min-width:44px;direction:ltr}
 #tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;margin:0 0 14px}
 #tools button{font-size:.85rem;padding:5px 10px}
+#tools button{display:inline-flex;align-items:center;gap:6px;position:relative;overflow:hidden}
+#tools button .ic,#tools button .lb{position:relative;z-index:1}
+#tools button .fill{position:absolute;inset:0 auto 0 0;width:0;background:var(--word);transition:width .2s}
+#prog{width:100%;height:8px;border-radius:4px;background:var(--line);overflow:hidden}
+#pbar{height:100%;width:0;background:var(--accent);transition:width .2s}
 #st{width:100%;text-align:center;color:var(--muted);font-size:.85rem;min-height:1.4em}
 .src{text-align:center;color:var(--muted);font-size:.85rem;line-height:2;margin-top:30px;border-top:1.5px solid var(--ink);padding-top:14px}
 .src a{color:var(--accent)}
@@ -64,8 +69,9 @@ footer{position:fixed;bottom:0;inset-inline:0;background:var(--bg);border-top:1p
 </header>
 <main>
   <div id="tools">
-    <button id="dl" disabled>تحميل التلاوة للاستخدام دون إنترنت</button>
-    <button id="dlAll">تحميل كل السور</button>
+    <button id="dl" disabled><svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 20h14"/></svg><span class="lb">تحميل التلاوة للاستخدام دون إنترنت</span></button>
+    <button id="dlAll"><svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 20h14"/></svg><span class="lb">تحميل كل السور</span></button>
+    <div id="prog" hidden><div id="pbar"></div></div>
     <span id="st" role="status"></span>
   </div>
   <div id="title"></div>
@@ -89,6 +95,16 @@ let verses = [], stamps = [], curV = null, curW = null, raf = 0, objUrl = null, 
 
 const toAr = n => String(n).replace(/\d/g, d => "٠١٢٣٤٥٦٧٨٩"[d]);
 const fmt = s => Math.floor(s/60) + ":" + String(Math.floor(s%60)).padStart(2, "0");
+const mb = b => toAr((b/1048576).toFixed(b > 10485760 ? 0 : 1));
+const BTN = {dl: "تحميل التلاوة للاستخدام دون إنترنت", all: "تحميل كل السور"};
+function setBtn(id, label, pct){
+  const b = $(id); b.querySelector(".lb").textContent = label;
+  let f = b.querySelector(".fill");
+  if(pct == null){ if(f) f.remove(); return; }
+  if(!f){ f = document.createElement("span"); f.className = "fill"; b.prepend(f); }
+  f.style.width = pct + "%";
+}
+function prog(p){ const el = $("prog"); el.hidden = p == null; if(p != null) $("pbar").style.width = p + "%"; }
 const say = t => { $("st").textContent = t || ""; };
 
 /* ---------- التخزين المحلي للتلاوات (IndexedDB) ---------- */
@@ -134,7 +150,7 @@ async function fetchBlob(url, onProg){
     const {done, value} = await rd.read();
     if(done) break;
     parts.push(value); got += value.length;
-    if(onProg) onProg(got / total);
+    if(onProg) onProg(got / total, got);
   }
   return new Blob(parts, {type: r.headers.get("content-type") || "audio/mpeg"});
 }
@@ -183,7 +199,7 @@ async function load(){
   if(id !== loadId) return;
   const have = await marks(); if(id !== loadId) return;
   $("dl").disabled = busy;
-  $("dl").textContent = saved ? "التلاوة محمّلة ✓ (اضغط للحذف)" : "تحميل التلاوة للاستخدام دون إنترنت";
+  setBtn("dl", saved ? "التلاوة محمّلة ✓ (اضغط للحذف)" : BTN.dl);
 
   if(saved){
     stamps = saved.stamps;
@@ -260,29 +276,37 @@ $("dl").onclick = async () => {
   if(!navigator.onLine){ say("يلزم اتصال بالإنترنت لتحميل التلاوة."); return; }
   busy = true; $("dl").disabled = true; $("dlAll").disabled = true;
   try{
-    await saveSurah(rec, s, p => say("جارٍ التحميل… " + toAr(Math.round(p*100)) + "٪"));
+    await saveSurah(rec, s, (p, got) => { const n = Math.round(p*100); setBtn("dl", toAr(n) + "٪", n); prog(n); say("جارٍ التحميل… " + toAr(n) + "٪ (" + mb(got) + " م.ب)"); });
+    prog(null);
     say("تم التحميل. التلاوة متاحة الآن دون إنترنت.");
     if(audio.paused && $("surah").value === s && $("reciter").value === rec) await load();
-  }catch(e){ say("تعذّر التحميل. تحقق من الاتصال وحاول مرة أخرى."); }
+  }catch(e){ prog(null); say("تعذّر التحميل. تحقق من الاتصال وحاول مرة أخرى."); }
   busy = false; $("dl").disabled = false; $("dlAll").disabled = false;
-  if($("dlAll").textContent !== "تحميل كل السور") $("dlAll").textContent = "تحميل كل السور";
+  setBtn("dl", BTN.dl);
 };
 
 $("dlAll").onclick = async () => {
   if(busy){ stopAll = true; say("جارٍ الإيقاف بعد السورة الحالية…"); return; }
   if(!navigator.onLine){ say("يلزم اتصال بالإنترنت للتحميل."); return; }
-  if(!confirm("سيتم تحميل جميع سور هذا القارئ إلى جهازك. الحجم كبير (قد يبلغ مئات الميغابايت أو أكثر)، ويُفضَّل استخدام شبكة Wi-Fi. المتابعة؟")) return;
+  if(!confirm("سيتم تحميل جميع سور هذا القارئ إلى جهازك. الحجم تقديري يتراوح بين ٣٠٠ و٧٠٠ ميغابايت تقريبًا بحسب القارئ، ويُفضَّل استخدام شبكة Wi-Fi. المتابعة؟")) return;
   const rec = $("reciter").value;
-  busy = true; stopAll = false; $("dl").disabled = true; $("dlAll").textContent = "إيقاف التحميل";
+  busy = true; stopAll = false; $("dl").disabled = true; setBtn("dlAll", "إيقاف التحميل", 0);
   let have = new Set(); try{ have = new Set((await DB.keys()).filter(k => k.startsWith(rec + ":"))); }catch(e){}
-  let failed = false;
+  let failed = false, total = 0, done = have.size;
   for(let s = 1; s <= 114 && !stopAll; s++){
     if(have.has(keyOf(rec, s))) continue;
     try{
-      await saveSurah(rec, s, p => say(`سورة ${NAMES[s-1]} — ${toAr(s)}/١١٤ — ${toAr(Math.round(p*100))}٪`));
+      let last = 0;
+      await saveSurah(rec, s, (p, got) => {
+        last = got;
+        const n = Math.min(100, Math.round((done + p) / 114 * 100));
+        setBtn("dlAll", "إيقاف التحميل — " + toAr(n) + "٪", n); prog(n);
+        say(`سورة ${NAMES[s-1]} — ${toAr(done + 1)}/١١٤ — ${toAr(n)}٪ — ${mb(total + got)} م.ب`);
+      });
+      total += last; done++;
     }catch(e){ failed = true; break; }
   }
-  busy = false; $("dl").disabled = false; $("dlAll").textContent = "تحميل كل السور";
+  busy = false; $("dl").disabled = false; setBtn("dlAll", BTN.all); prog(null);
   say(failed ? "توقّف التحميل (تعذّر الاتصال). السور المحمّلة محفوظة، ويمكنك المتابعة لاحقًا." : stopAll ? "تم الإيقاف. السور المحمّلة محفوظة." : "اكتمل تحميل جميع السور.");
   if(audio.paused) load(); else marks();
 };
