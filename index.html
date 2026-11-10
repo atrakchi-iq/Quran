@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>المصحف المسموع</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0F4C5C">
+<link rel="icon" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Cairo:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f6f7f4;--ink:#1d2a33;--muted:#6b7a84;--line:#dfe4e0;--panel:#ffffff;--verse:rgba(46,125,115,.07);--word:rgba(46,125,115,.22);--accent:#2e7d73}
+@media (prefers-color-scheme:dark){:root{--bg:#12191d;--ink:#e6ece9;--muted:#8fa0a8;--line:#26333a;--panel:#192228;--verse:rgba(90,190,175,.07);--word:rgba(90,190,175,.28);--accent:#5abeaf}}
+*{box-sizing:border-box}
+html{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Cairo,system-ui,sans-serif;padding:env(safe-area-inset-top) 0 0}
+header{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding:10px 14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+select,button{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 10px}
+button{cursor:pointer}
+select{flex:1;min-width:120px}
+#play{background:var(--accent);color:#fff;border-color:var(--accent);min-width:84px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+main{max-width:760px;margin:0 auto;padding:22px 18px calc(90px + env(safe-area-inset-bottom))}
+#title{text-align:center;font-family:"Amiri Quran",serif;font-size:2rem;margin:6px 0 18px}
+#text{font-family:"Amiri Quran",serif;font-size:clamp(1.7rem,5.2vw,2.35rem);line-height:2.3;text-align:justify;text-align-last:center}
+.v{border-radius:10px;padding:2px 3px;cursor:pointer;transition:background .25s}
+.v.on{background:var(--verse)}
+.w{border-radius:6px;padding:0 2px;transition:background .12s}
+.w.on{background:var(--word)}
+.n{color:var(--accent);font-size:.8em;margin:0 4px;white-space:nowrap}
+#msg{text-align:center;color:var(--muted);padding:40px 0}
+footer{position:fixed;bottom:0;inset-inline:0;background:var(--bg);border-top:1px solid var(--line);padding:8px 14px calc(8px + env(safe-area-inset-bottom));display:flex;gap:10px;align-items:center}
+#bar{flex:1;accent-color:var(--accent)}
+#time{color:var(--muted);font-size:.85rem;min-width:44px;direction:ltr}
+.src{text-align:center;color:var(--muted);font-size:.8rem;margin-top:30px}
+</style>
+</head>
+<body>
+<header>
+  <select id="surah" aria-label="السورة"></select>
+  <select id="reciter" aria-label="القارئ">
+    <option value="7">مشاري العفاسي</option>
+    <option value="6">محمود الحصري</option>
+    <option value="9">المنشاوي (مرتل)</option>
+    <option value="2">عبد الباسط (مرتل)</option>
+    <option value="3">السديس</option>
+    <option value="10">الشريم</option>
+    <option value="5">هاني الرفاعي</option>
+  </select>
+  <select id="speed" aria-label="السرعة" style="flex:0 0 76px;min-width:0">
+    <option value="0.75">0.75×</option><option value="1" selected>1×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option>
+  </select>
+  <button id="play" disabled>تشغيل</button>
+</header>
+<main>
+  <div id="title"></div>
+  <div id="text"><div id="msg">جارٍ التحميل…</div></div>
+  <p class="src">النص والصوت والتوقيت: Quran.com — أضف هنا صفحة المصادر والشكر</p>
+</main>
+<footer>
+  <span id="time">0:00</span>
+  <input id="bar" type="range" min="0" max="1000" value="0" aria-label="موضع التلاوة">
+</footer>
+<audio id="audio" preload="auto"></audio>
+
+<script>
+const API = "https://api.quran.com/api/v4";
+const $ = id => document.getElementById(id);
+const audio = $("audio");
+let verses = [], stamps = [], curV = null, curW = null, raf = 0;
+
+const toAr = n => String(n).replace(/\d/g, d => "٠١٢٣٤٥٦٧٨٩"[d]);
+const fmt = s => Math.floor(s/60) + ":" + String(Math.floor(s%60)).padStart(2, "0");
+
+async function api(path){
+  const r = await fetch(API + path);
+  if(!r.ok) throw new Error(r.status);
+  return r.json();
+}
+
+async function init(){
+  try{
+    const d = await api("/chapters?language=ar");
+    $("surah").innerHTML = d.chapters.map(c => `<option value="${c.id}">${toAr(c.id)}. ${c.name_arabic}</option>`).join("");
+    const saved = localStorage.getItem("surah");
+    if(saved) $("surah").value = saved;
+    const r = localStorage.getItem("reciter");
+    if(r) $("reciter").value = r;
+  }catch(e){ return fail("تعذّر تحميل قائمة السور. تحقق من الاتصال."); }
+  load();
+}
+
+function fail(t){ $("text").innerHTML = `<div id="msg">${t}</div>`; }
+
+async function load(){
+  audio.pause(); cancelAnimationFrame(raf);
+  $("play").disabled = true; $("play").textContent = "تشغيل";
+  $("text").innerHTML = '<div id="msg">جارٍ التحميل…</div>';
+  const s = $("surah").value, rec = $("reciter").value;
+  try{ localStorage.setItem("surah", s); localStorage.setItem("reciter", rec); }catch(e){}
+  try{
+    const [t, a] = await Promise.all([
+      api(`/verses/by_chapter/${s}?words=true&word_fields=text_uthmani&per_page=300&fields=verse_key`),
+      api(`/chapter_recitations/${rec}/${s}?segments=true`)
+    ]);
+    verses = t.verses;
+    stamps = a.audio_file.timestamps || [];
+    audio.src = a.audio_file.audio_url;
+    audio.playbackRate = +$("speed").value;
+    render();
+    $("title").textContent = $("surah").selectedOptions[0].textContent.replace(/^[^.]+\.\s*/, "سورة ");
+    $("play").disabled = false;
+  }catch(e){ fail("تعذّر تحميل السورة أو التلاوة. جرّب قارئًا آخر."); }
+}
+
+function render(){
+  $("text").innerHTML = verses.map(v => {
+    const ws = v.words.map(w => w.char_type_name === "end"
+      ? `<span class="n">﴿${toAr(w.position ? v.verse_number : v.verse_number)}﴾</span>`
+      : `<span class="w" data-p="${w.position}">${w.text_uthmani}</span>`).join(" ");
+    return `<span class="v" data-k="${v.verse_key}">${ws}</span> `;
+  }).join("");
+  curV = curW = null;
+}
+
+function clearOn(){
+  if(curV) curV.classList.remove("on");
+  if(curW) curW.classList.remove("on");
+  curV = curW = null;
+}
+
+function tick(){
+  const t = audio.currentTime * 1000;
+  $("time").textContent = fmt(audio.currentTime);
+  if(audio.duration) $("bar").value = audio.currentTime / audio.duration * 1000;
+  const st = stamps.find(x => t >= x.timestamp_from && t < x.timestamp_to);
+  if(st){
+    const vEl = document.querySelector(`.v[data-k="${st.verse_key}"]`);
+    if(vEl !== curV){
+      if(curV) curV.classList.remove("on");
+      curV = vEl;
+      if(vEl){
+        vEl.classList.add("on");
+        const r = vEl.getBoundingClientRect();
+        if(r.top < 120 || r.bottom > innerHeight - 90) vEl.scrollIntoView({block:"center", behavior:"smooth"});
+      }
+    }
+    let pos = null;
+    for(const sg of (st.segments || [])){
+      const n = sg.length;
+      if(t >= sg[n-2] && t < sg[n-1]){ pos = n === 3 ? sg[0] : sg[1]; break; }
+    }
+    const wEl = pos && vEl ? vEl.querySelector(`.w[data-p="${pos}"]`) : null;
+    if(wEl !== curW){
+      if(curW) curW.classList.remove("on");
+      curW = wEl;
+      if(wEl) wEl.classList.add("on");
+    }
+  }
+  if(!audio.paused) raf = requestAnimationFrame(tick);
+}
+
+$("play").onclick = () => audio.paused ? audio.play() : audio.pause();
+audio.onplay = () => { $("play").textContent = "إيقاف"; raf = requestAnimationFrame(tick); };
+audio.onpause = () => { $("play").textContent = "تشغيل"; };
+audio.onended = () => { $("play").textContent = "تشغيل"; clearOn(); };
+audio.onseeked = tick;
+$("bar").oninput = e => { if(audio.duration){ audio.currentTime = e.target.value / 1000 * audio.duration; tick(); } };
+$("speed").onchange = e => audio.playbackRate = +e.target.value;
+$("surah").onchange = load;
+$("reciter").onchange = load;
+$("text").onclick = e => {
+  const v = e.target.closest(".v");
+  if(!v) return;
+  const st = stamps.find(x => x.verse_key === v.dataset.k);
+  if(st){ audio.currentTime = st.timestamp_from / 1000; audio.play(); }
+};
+
+init();
+</script>
+</body>
+</html>
