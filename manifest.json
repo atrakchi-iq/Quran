@@ -1,8 +1,8 @@
 {
   "id": "/",
   "name": "جمعة جاد الله – القرآن بدون نت",
-  "short_name": "القرآن الكريم",
-  "description": "المصحف كاملاً بدون نت لـ 7 قراء، دعواتكم لمؤذن مسجد الحلواني الحاج جمعة جاد الله الشريف",
+  "short_name": "القرآن",
+  "description": "المصحف كاملاً بدون نت لـ 7 قراء، دعواتكم للحاج جمعة جاد الله الشريف",
   "lang": "ar",
   "dir": "rtl",
   "start_url": "/",
@@ -52,17 +52,24 @@
   "screenshots": [
     {
       "src": "screenshots/phone-1.png",
-      "sizes": "780x1688",
+      "sizes": "1080x1920",
       "type": "image/png",
       "form_factor": "narrow",
       "label": "قراءة سورة الكهف مع تظليل الكلمة الجارية"
     },
     {
       "src": "screenshots/phone-2.png",
-      "sizes": "780x1688",
+      "sizes": "1080x1920",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "الوضع الداكن مع أزرار التحميل للعمل دون إنترنت"
+      "label": "سورة يس بالوضع الداكن مع تظليل الكلمة الجارية"
+    },
+    {
+      "src": "screenshots/phone-3.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "سورة الملك بالوضع الفاتح مع تظليل الكلمة الجارية"
     },
     {
       "src": "screenshots/wide-1.png",

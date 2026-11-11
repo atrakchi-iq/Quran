@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>جمعة جاد الله - القرآن بدون انترنت</title>
+<title>جمعة جاد الله – القرآن بدون نت</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#292B27">
 <script>
@@ -66,6 +66,7 @@ header option{background:var(--band-2);color:var(--band-ink)}
 #play:disabled{background:transparent;color:var(--band-line);border-color:var(--band-line);cursor:default}
 #play svg{width:16px;height:16px;fill:currentColor;flex:none}
 @media (min-width:700px){#surah{flex:2 1 220px}}
+@media (max-width:520px){#surah{flex:1 1 100%}}
 
 main{max-width:760px;margin:0 auto;padding:18px 18px calc(96px + env(safe-area-inset-bottom))}
 
@@ -133,7 +134,7 @@ footer{position:fixed;bottom:0;inset-inline:0;background:var(--band);color:var(-
 <script src="splash.js"></script>
 <script src="quran-data.js"></script>
 <header>
-  <div class="brand"><span>الحاج جمعة جاد الله الشريف - القرآن بدون انترنت</span><button id="thm" type="button" aria-label="الوضع الداكن"></button></div>
+  <div class="brand"><span>جمعة جاد الله – القرآن بدون نت</span><button id="thm" type="button" aria-label="الوضع الداكن"></button></div>
   <div class="ctl">
     <select id="surah" aria-label="السورة"></select>
     <button id="mode" type="button"></button>
@@ -174,7 +175,7 @@ footer{position:fixed;bottom:0;inset-inline:0;background:var(--band);color:var(-
   <p class="src">نص القرآن: <a href="https://tanzil.net" target="_blank" rel="noopener">Tanzil Project — tanzil.net</a> (النص العثماني، الإصدار 1.1، برخصة <a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noopener">CC BY 3.0</a>، مضمَّن في التطبيق دون تعديل) · الصوت والتوقيت: <a href="https://quran.com" target="_blank" rel="noopener">Quran.com</a> (عند التحميل) · الخط: Amiri Quran وCairo (مضمَّنان)<br>
   <a href="/privacy.html">سياسة الخصوصية</a> · <a href="/terms.html">اتفاقية الاستخدام</a><br>
   <a href="https://www.atrakchi.com/" target="_blank" rel="noopener">داود الاطرقجي للاستشارات الهندسية</a> — <a href="mailto:info@atrakchi.com">info@atrakchi.com</a><br>
-  <span class="ver" id="ver">رقم التحديث: ٩ · تأريخ التحديث: ١١ نوفمبر ٢٠٢٦</span></p>
+  <span class="ver" id="ver">رقم التحديث: ١١ · تأريخ التحديث: ١١ نوفمبر ٢٠٢٦</span></p>
 </main>
 <footer>
   <span id="time">0:00</span>
