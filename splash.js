@@ -3,7 +3,7 @@
   var CFG = {
     photo: 'muadhin.jpg',        /* put the photo in the repo root with this name */
     fallback: 'icons/icon-512.png',    /* shown until the photo exists */
-    showMs: 7000,                /* total time on screen */
+    showMs: 10000,                /* total time on screen */
     skipAfterMs: 3000            /* tap-to-skip becomes available */
   };
   var force = /[?&]splash=1/.test(location.search);
@@ -27,7 +27,7 @@
   '<div class="in">' +
   '<p class="bsm">بسم الله الرحمن الرحيم</p>' +
   '<div class="ph"><img id="qspImg" alt=""></div>' +
-  '<p class="tx">«لا تنسوا مؤذن مسجد الحلواني، السيد جمعة جاد الله الشريف، من صالح دعائكم»</p>' +
+  '<p class="tx">«لا تنسوا مؤذن مسجد الحلواني، الحاج جمعة جاد الله الشريف، من صالح دعائكم»</p>' +
   '<p class="gf">إهداءٌ من المطوّر: داود الاطرقجي للاستشارات الهندسية</p>' +
   '<p class="sk" id="qspSk">اضغط في أي مكان للمتابعة</p>' +
   '</div>';

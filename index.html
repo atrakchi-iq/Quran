@@ -56,7 +56,10 @@ header option{background:var(--band-2);color:var(--band-ink)}
 #thm{margin-inline-start:auto;flex:none;width:44px;padding:0;display:inline-flex;align-items:center;justify-content:center;background:transparent;color:var(--band-ink);border-color:var(--band-line)}
 #thm:hover{border-color:var(--sage);color:var(--sage)}
 #thm svg{width:20px;height:20px}
-#surah{flex:1 1 100%}
+#surah{flex:1 1 0;min-width:0}
+#mode{flex:0 0 auto;white-space:nowrap;background:transparent;color:var(--band-ink);border-color:var(--band-line);font-size:.9rem}
+#mode:hover{border-color:var(--sage);color:var(--sage)}
+#mode.on{border-color:var(--sage);color:var(--sage)}
 #reciter{flex:1 1 150px;min-width:0}
 #speed{flex:0 0 84px;min-width:0;padding-inline-end:28px}
 #play{flex:0 0 104px;display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--sage);color:#292B27;border-color:var(--sage);font-weight:600}
@@ -130,9 +133,10 @@ footer{position:fixed;bottom:0;inset-inline:0;background:var(--band);color:var(-
 <script src="splash.js"></script>
 <script src="quran-data.js"></script>
 <header>
-  <div class="brand"><span>جمعة جاد الله - القرآن بدون انترنت</span><button id="thm" type="button" aria-label="الوضع الداكن"></button></div>
+  <div class="brand"><span>الحاج جمعة جاد الله الشريف - القرآن بدون انترنت</span><button id="thm" type="button" aria-label="الوضع الداكن"></button></div>
   <div class="ctl">
     <select id="surah" aria-label="السورة"></select>
+    <button id="mode" type="button"></button>
     <select id="reciter" aria-label="القارئ">
       <option value="7">مشاري العفاسي</option>
       <option value="6">محمود الحصري</option>
@@ -166,11 +170,11 @@ footer{position:fixed;bottom:0;inset-inline:0;background:var(--band);color:var(-
     <span id="st" role="status"></span>
   </div>
   <div id="text"><div id="msg">جارٍ التحميل…</div></div>
-  <p class="ded">«لا تنسوا مؤذن مسجد الحلواني، السيد جمعة جاد الله الشريف، من صالح دعائكم»</p>
+  <p class="ded">«لا تنسوا مؤذن مسجد الحلواني، الحاج جمعة جاد الله الشريف، من صالح دعائكم»</p>
   <p class="src">نص القرآن: <a href="https://tanzil.net" target="_blank" rel="noopener">Tanzil Project — tanzil.net</a> (النص العثماني، الإصدار 1.1، برخصة <a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noopener">CC BY 3.0</a>، مضمَّن في التطبيق دون تعديل) · الصوت والتوقيت: <a href="https://quran.com" target="_blank" rel="noopener">Quran.com</a> (عند التحميل) · الخط: Amiri Quran وCairo (مضمَّنان)<br>
   <a href="/privacy.html">سياسة الخصوصية</a> · <a href="/terms.html">اتفاقية الاستخدام</a><br>
   <a href="https://www.atrakchi.com/" target="_blank" rel="noopener">داود الاطرقجي للاستشارات الهندسية</a> — <a href="mailto:info@atrakchi.com">info@atrakchi.com</a><br>
-  <span class="ver" id="ver">رقم التحديث: ٧ · تأريخ التحديث: ١١ نوفمبر ٢٠٢٦</span></p>
+  <span class="ver" id="ver">رقم التحديث: ٩ · تأريخ التحديث: ١١ نوفمبر ٢٠٢٦</span></p>
 </main>
 <footer>
   <span id="time">0:00</span>
@@ -325,6 +329,8 @@ function init(){
     const q = new URLSearchParams(location.search).get("surah"); if(q && +q>=1 && +q<=114) $("surah").value = String(+q);
     const r = localStorage.getItem("reciter"); if(r) $("reciter").value = r;
   }catch(e){}
+  let pm = 0; try{ pm = +localStorage.getItem("pmode") || 0; }catch(e){}
+  setMode(pm >= 0 && pm <= 2 ? pm : 0);
   load();
 }
 
@@ -336,8 +342,18 @@ async function marks(){
   return have;
 }
 
+let autoplay = false, mode = 0;
+const MODES = ["بلا تكرار", "تكرار السورة", "تتابع السور"];
+function setMode(m){
+  mode = m;
+  const b = $("mode"); b.textContent = "↻ " + MODES[m]; b.classList.toggle("on", m > 0);
+  b.setAttribute("aria-label", "وضع التشغيل: " + MODES[m] + " — اضغط للتغيير");
+  try{ localStorage.setItem("pmode", m); }catch(e){}
+}
+
 async function load(){
   const id = ++loadId;
+  const auto = autoplay; autoplay = false;
   audio.pause(); cancelAnimationFrame(raf); clearOn();
   if(objUrl){ URL.revokeObjectURL(objUrl); objUrl = null; }
   audio.removeAttribute("src"); stamps = [];
@@ -348,6 +364,7 @@ async function load(){
   verses = TEXT[s-1];
   render();
   $("title").textContent = "سورة " + NAMES[s-1];
+  updateMeta();
   scrollTo(0, 0);
   say("");
 
@@ -365,12 +382,14 @@ async function load(){
     objUrl = URL.createObjectURL(saved.blob);
     audio.src = objUrl; audio.playbackRate = +$("speed").value;
     $("play").disabled = false;
+    if(auto) audio.play().catch(()=>{});
   }else if(navigator.onLine){
     try{
       const r = await getRecitation(rec, s);
       if(id !== loadId) return;
       stamps = r.stamps; audio.src = r.url; audio.playbackRate = +$("speed").value;
       $("play").disabled = false;
+      if(auto) audio.play().catch(()=>{});
     }catch(e){ if(id === loadId) say("تعذّر تحميل التلاوة. جرّب قارئًا آخر."); }
   }else{
     say("لا يوجد اتصال. النص متاح للقراءة، أما التلاوة فتحتاج إلى تحميل مسبق (السور المحمّلة عليها علامة ✓).");
@@ -504,7 +523,62 @@ $("dlAll").onclick = async () => {
 $("play").onclick = () => audio.paused ? audio.play() : audio.pause();
 audio.onplay = () => { setPlay(true); raf = requestAnimationFrame(tick); };
 audio.onpause = () => setPlay(false);
-audio.onended = () => { setPlay(false); clearOn(); };
+audio.onended = () => {
+  if(mode === 1){ audio.currentTime = 0; audio.play().catch(()=>{}); return; }
+  if(mode === 2){ $("surah").value = String(+$("surah").value % 114 + 1); autoplay = true; load(); return; }
+  setPlay(false); clearOn();
+};
+$("mode").onclick = () => setMode((mode + 1) % 3);
+
+/* ---------- التشغيل في الخلفية وقفل الشاشة (Media Session) ---------- */
+function goSurah(d){
+  $("surah").value = String(((+$("surah").value - 1 + d + 114) % 114) + 1);
+  autoplay = true; load();
+}
+function updateMeta(){
+  if(!("mediaSession" in navigator) || typeof MediaMetadata === "undefined") return;
+  const s = +$("surah").value, rec = $("reciter").selectedOptions[0];
+  try{
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: "سورة " + NAMES[s-1],
+      artist: rec ? rec.textContent : "",
+      album: "القرآن الكريم",
+      artwork: [
+        { src: "icons/icon-192.png", sizes: "192x192", type: "image/png" },
+        { src: "icons/icon-512.png", sizes: "512x512", type: "image/png" }
+      ]
+    });
+  }catch(e){}
+}
+function posState(){
+  if(!("mediaSession" in navigator) || !navigator.mediaSession.setPositionState) return;
+  if(!audio.duration || !isFinite(audio.duration)) return;
+  try{
+    navigator.mediaSession.setPositionState({
+      duration: audio.duration,
+      playbackRate: audio.playbackRate || 1,
+      position: Math.min(audio.currentTime, audio.duration)
+    });
+  }catch(e){}
+}
+if("mediaSession" in navigator){
+  const ms = navigator.mediaSession;
+  const set = (name, fn) => { try{ ms.setActionHandler(name, fn); }catch(e){} };
+  set("play", () => audio.play().catch(()=>{}));
+  set("pause", () => audio.pause());
+  set("stop", () => { audio.pause(); audio.currentTime = 0; });
+  set("seekbackward", d => { audio.currentTime = Math.max(0, audio.currentTime - ((d && d.seekOffset) || 10)); });
+  set("seekforward", d => { audio.currentTime = Math.min(audio.duration || 1e9, audio.currentTime + ((d && d.seekOffset) || 10)); });
+  set("seekto", d => { if(d && typeof d.seekTime === "number"){ audio.currentTime = d.seekTime; } });
+  set("previoustrack", () => goSurah(-1));
+  set("nexttrack", () => goSurah(1));
+  audio.addEventListener("play", () => { ms.playbackState = "playing"; posState(); });
+  audio.addEventListener("pause", () => { ms.playbackState = "paused"; posState(); });
+  audio.addEventListener("loadedmetadata", posState);
+  audio.addEventListener("durationchange", posState);
+  audio.addEventListener("ratechange", posState);
+  audio.addEventListener("seeked", posState);
+}
 audio.onseeked = tick;
 $("bar").oninput = e => { if(audio.duration){ audio.currentTime = e.target.value / 1000 * audio.duration; tick(); } };
 $("speed").onchange = e => audio.playbackRate = +e.target.value;
