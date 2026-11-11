@@ -1,12 +1,8 @@
-[
-  {
-    "relation": ["delegate_permission/common.handle_all_urls"],
-    "target": {
-      "namespace": "android_app",
-      "package_name": "contact.atrakchi.quran.twa",
-      "sha256_cert_fingerprints": [
-        "ضع_هنا_بصمة_SHA256_من_Play_Console_App_signing"
-      ]
-    }
-  }
-]
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "contact.atrakchi.quran.twa",
+        "sha256_cert_fingerprints": ["07:D4:88:02:4F:51:19:EA:42:DE:39:5F:B8:2C:CC:42:F3:D2:5C:14:A0:4D:E8:23:D8:31:B4:4D:14:CC:8A:33"]
+      }
+    }]
