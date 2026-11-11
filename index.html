@@ -71,6 +71,8 @@ main{max-width:760px;margin:0 auto;padding:18px 18px calc(96px + env(safe-area-i
   background-color:var(--surface);
   background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:26px 26px}
 #title{font-family:"Amiri Quran",serif;font-size:2.1rem;line-height:1.5}
+#bsm{font-family:"Amiri Quran",serif;font-size:1.45rem;line-height:1.9;color:var(--muted)}
+#bsm:empty{display:none}
 
 /* أدوات التحميل */
 #tools{display:flex;flex-wrap:wrap;gap:10px;align-items:stretch;margin:0 0 18px}
@@ -147,7 +149,7 @@ footer{position:fixed;bottom:0;inset-inline:0;background:var(--band);color:var(-
   </div>
 </header>
 <main>
-  <section id="hero"><div id="title"></div></section>
+  <section id="hero"><div id="title"></div><div id="bsm"></div></section>
   <div id="tools">
     <div class="tb">
       <button id="dl" disabled><span class="ic"></span><span class="lb">تحميل التلاوة للاستخدام دون إنترنت</span></button>
@@ -165,10 +167,10 @@ footer{position:fixed;bottom:0;inset-inline:0;background:var(--band);color:var(-
   </div>
   <div id="text"><div id="msg">جارٍ التحميل…</div></div>
   <p class="ded">«لا تنسوا مؤذن مسجد الحلواني، السيد جمعة جاد الله الشريف، من صالح دعائكم»</p>
-  <p class="src">النص: <a href="https://quranenc.com" target="_blank" rel="noopener">موسوعة القرآن الكريم</a> (مضمَّن في التطبيق) · الصوت والتوقيت: <a href="https://quran.com" target="_blank" rel="noopener">Quran.com</a> (عند التحميل) · الخط: Amiri Quran وCairo (مضمَّنان)<br>
+  <p class="src">نص القرآن: <a href="https://tanzil.net" target="_blank" rel="noopener">Tanzil Project — tanzil.net</a> (النص العثماني، الإصدار 1.1، برخصة <a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noopener">CC BY 3.0</a>، مضمَّن في التطبيق دون تعديل) · الصوت والتوقيت: <a href="https://quran.com" target="_blank" rel="noopener">Quran.com</a> (عند التحميل) · الخط: Amiri Quran وCairo (مضمَّنان)<br>
   <a href="/privacy.html">سياسة الخصوصية</a> · <a href="/terms.html">اتفاقية الاستخدام</a><br>
   <a href="https://www.atrakchi.com/" target="_blank" rel="noopener">داود الاطرقجي للاستشارات الهندسية</a> — <a href="mailto:info@atrakchi.com">info@atrakchi.com</a><br>
-  <span class="ver" id="ver">رقم التحديث: ٦ · تأريخ التحديث: ١٠ نوفمبر ٢٠٢٦</span></p>
+  <span class="ver" id="ver">رقم التحديث: ٧ · تأريخ التحديث: ١١ نوفمبر ٢٠٢٦</span></p>
 </main>
 <footer>
   <span id="time">0:00</span>
@@ -375,12 +377,28 @@ async function load(){
   }
 }
 
+/* نص Tanzil يُعرض كما هو. الرموز المنفردة (علامات الوقف ۚ ۖ ۗ ...) تُلصق بالكلمة التي قبلها، وعلامة ۞ بالتي بعدها، ليبقى ترقيم الكلمات مطابقًا لتوقيت Quran.com */
+const LET = /[\u0621-\u064A\u0671-\u06D3]/, QJOIN = window.QURAN.join || {};
+function wordsOf(key, t){
+  const out = []; let pend = "";
+  for(const w of t.split(" ")){
+    if(!LET.test(w)){
+      if(w === "\u06DE"){ pend = w; continue; }
+      if(out.length) out[out.length-1] += " " + w; else out.push(w);
+    }else{ out.push(pend ? pend + " " + w : w); pend = ""; }
+  }
+  (QJOIN[key] || []).slice().reverse().forEach(i => out.splice(i, 2, out[i] + " " + out[i+1]));
+  return out;
+}
 function render(){
+  const sn = +$("surah").value, own = sn !== 1 && sn !== 9;
   $("text").innerHTML = verses.map((t, i) => {
     const n = i + 1;
-    const ws = t.split(" ").map((w, j) => `<span class="w" data-p="${j+1}">${w}</span>`).join(" ");
-    return `<span class="v" data-k="${$("surah").value}:${n}">${ws} <span class="n">﴿${toAr(n)}﴾</span></span> `;
+    if(n === 1 && own) t = t.split(" ").slice(4).join(" ");   /* بسملة مطلع السورة (في ملف Tanzil) تُعرض فوق النص، ولا تُحتسب كلمات للآية */
+    const ws = wordsOf(sn + ":" + n, t).map((w, j) => `<span class="w" data-p="${j+1}">${w}</span>`).join(" ");
+    return `<span class="v" data-k="${sn}:${n}">${ws} <span class="n">﴿${toAr(n)}﴾</span></span> `;
   }).join("");
+  $("bsm").textContent = own ? TEXT[0][0] : "";
   curV = curW = null;
 }
 

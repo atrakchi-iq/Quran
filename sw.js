@@ -1,5 +1,5 @@
 /* Service worker — يجعل التطبيق يعمل دون إنترنت. غيّر رقم الإصدار عند أي تحديث للملفات. */
-const VERSION = 'quran-v6';
+const VERSION = 'quran-v7';
 const SHELL = [
   './', 'index.html', 'splash.js', 'quran-data.js', 'manifest.json', 'privacy.html', 'terms.html',
   'fonts/amiri-quran-arabic-400-normal.woff2', 'fonts/cairo-arabic-400-normal.woff2', 'fonts/cairo-arabic-600-normal.woff2',
