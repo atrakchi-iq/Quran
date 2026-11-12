@@ -1,8 +1,15 @@
-[{
-      "relation": ["delegate_permission/common.handle_all_urls"],
-      "target": {
-        "namespace": "android_app",
-        "package_name": "contact.atrakchi.quran.twa",
-        "sha256_cert_fingerprints": ["07:D4:88:02:4F:51:19:EA:42:DE:39:5F:B8:2C:CC:42:F3:D2:5C:14:A0:4D:E8:23:D8:31:B4:4D:14:CC:8A:33"]
-      }
-    }]
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "contact.atrakchi.quran.twa",
+      "sha256_cert_fingerprints": [
+        "07:D4:88:02:4F:51:19:EA:42:DE:39:5F:B8:2C:CC:42:F3:D2:5C:14:A0:4D:E8:23:D8:31:B4:4D:14:CC:8A:33",
+        "B1:91:F1:94:38:90:07:A9:FA:1C:47:1B:92:13:1E:3F:B8:F7:E0:DB:4A:94:7C:A0:6F:B8:3B:0D:A8:34:A4:5A",
+        "71:CE:CF:92:C4:E6:CB:DE:0D:F6:86:1F:D4:51:18:76:5A:4F:65:83:42:3B:54:DF:78:56:A3:52:3B:02:49:3A",
+        "EC:07:DA:B1:B1:57:FD:A7:A9:09:D3:8D:BF:4A:C2:99:21:F7:EE:87:03:97:96:16:5B:C8:14:63:32:C8:5B:F5"
+      ]
+    }
+  }
+]
