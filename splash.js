@@ -18,10 +18,10 @@
   '#qsp .bsm{color:#BFE3C8;font-size:1.5rem;font-weight:600;line-height:1.6;margin:0 0 12px}' +
   '#qsp .ph{height:min(35vh,340px);aspect-ratio:4/5;margin:0 auto 16px;border:2px solid #BFE3C8;padding:5px;background:#34362F;border-radius:2px;box-sizing:content-box}' +
   '#qsp .ph img{width:100%;height:100%;object-fit:cover;object-position:50% 20%;display:block;border-radius:1px}' +
-  '#qsp .tx{font-size:1.45rem;font-weight:700;line-height:1.95;color:#FFFFFF;margin:0 0 16px;padding-top:12px;border-top:2px solid #E8C79E}' +
-  '#qsp .gf{margin:0 auto;padding:10px 14px;border:1.5px solid #E8C79E;background:rgba(232,199,158,.10);border-radius:2px}' +
-  '#qsp .gf .l{display:block;font-size:1.05rem;font-weight:600;color:#E8C79E;line-height:1.7}' +
-  '#qsp .gf .n{display:block;font-size:1.2rem;font-weight:700;color:#FFFFFF;line-height:1.8}' +
+  '#qsp .tx{font-size:1.45rem;font-weight:700;line-height:1.95;color:#FFFFFF;margin:0 0 6px;padding-top:12px;border-top:2px solid #E8C79E;text-align:start}' +
+  '#qsp .sg{display:block;width:max-content;margin:0 auto 0 0;text-align:center}' +
+  '#qsp .sg svg{display:block;width:170px;height:auto;margin:0 auto 2px;color:#A9B6FF}' +
+  '#qsp .sg span{display:block;font-size:1.15rem;font-weight:700;color:#E8C79E;line-height:1.7}' +
   '#qsp .sk{margin:14px 0 0;font-size:1rem;color:#BFE3C8;visibility:hidden}' +
   '#qsp .sk.on{visibility:visible}';
 
@@ -30,7 +30,7 @@
   '<p class="bsm">بسم الله الرحمن الرحيم</p>' +
   '<div class="ph"><img id="qspImg" alt=""></div>' +
   '<p class="tx">«لا تنسوا مؤذن مسجد الحلواني، الحاج جمعة جاد الله الشريف، من صالح دعائكم»</p>' +
-  '<p class="gf"><span class="l">إهداءٌ من المطوّر</span><span class="n">داود الاطرقجي للاستشارات الهندسية</span></p>' +
+  '<div class="sg"><svg viewBox="0 0 1000 396" aria-hidden="true"><use href="#sig"/></svg><span>داود الاطرقجي للاستشارات الهندسية</span></div>' +
   '<p class="sk" id="qspSk">اضغط في أي مكان للمتابعة</p>' +
   '</div>';
 
