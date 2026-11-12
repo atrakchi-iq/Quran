@@ -157,7 +157,7 @@ footer{position:fixed;bottom:0;inset-inline:0;background:var(--band);color:var(-
   <section id="hero"><div id="title"></div><div id="bsm"></div></section>
   <div id="tools">
     <div class="tb">
-      <button id="dl" disabled><span class="ic"></span><span class="lb">تحميل التلاوة للتشغيل بدون انترنت</span></button>
+      <button id="dl" disabled><span class="ic"></span><span class="lb">تحميل التلاوة للاستخدام دون إنترنت</span></button>
       <span class="sz" id="dlSz"></span>
     </div>
     <div class="tb">
@@ -175,7 +175,7 @@ footer{position:fixed;bottom:0;inset-inline:0;background:var(--band);color:var(-
   <p class="src">نص القرآن: <a href="https://tanzil.net" target="_blank" rel="noopener">Tanzil Project — tanzil.net</a> (النص العثماني، الإصدار 1.1، برخصة <a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noopener">CC BY 3.0</a>، مضمَّن في التطبيق دون تعديل) · الصوت والتوقيت: <a href="https://quran.com" target="_blank" rel="noopener">Quran.com</a> (عند التحميل) · الخط: Amiri Quran وCairo (مضمَّنان)<br>
   <a href="/privacy.html">سياسة الخصوصية</a> · <a href="/terms.html">اتفاقية الاستخدام</a><br>
   <a href="https://www.atrakchi.com/" target="_blank" rel="noopener">داود الاطرقجي للاستشارات الهندسية</a> — <a href="mailto:info@atrakchi.com">info@atrakchi.com</a><br>
-  <span class="ver" id="ver">رقم التحديث: ١٢ · تأريخ التحديث: ١١ نوفمبر ٢٠٢٦</span></p>
+  <span class="ver" id="ver">رقم التحديث: ١٢ · تأريخ التحديث: ١٢ نوفمبر ٢٠٢٦</span></p>
 </main>
 <footer>
   <span id="time">0:00</span>
@@ -198,7 +198,7 @@ const size = b => {
   if(m >= 1024) return toAr((m/1024).toFixed(2)).replace(".", "٫") + " غ.ب";
   return toAr(m >= 100 ? Math.round(m) : m.toFixed(1)).replace(".", "٫") + " م.ب";
 };
-const BTN = {dl: "تحميل التلاوة للتشغيل بدون انترنت", all: "تحميل كل السور"};
+const BTN = {dl: "تحميل التلاوة للاستخدام دون إنترنت", all: "تحميل كل السور"};
 const SV = d => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true">${d}</svg>`;
 const ICON = {
   dl:   SV('<path d="M12 3v12M7 10l5 5 5-5M4 20h16"/>'),
@@ -374,7 +374,7 @@ async function load(){
   if(id !== loadId) return;
   const have = await marks(); if(id !== loadId) return;
   $("dl").disabled = busy;
-  setBtn("dl", saved ? "تم التحميل · التشغيل بدون انترنت (اضغط للحذف)" : BTN.dl, null, saved ? "ok" : "dl");
+  setBtn("dl", saved ? "التلاوة محمّلة (اضغط للحذف)" : BTN.dl, null, saved ? "ok" : "dl");
   $("dl").classList.toggle("done", !!saved);
   showSizes(rec, +s, id);
 
@@ -459,6 +459,16 @@ function tick(){
   if(!audio.paused) raf = requestAnimationFrame(tick);
 }
 
+/* تحديث نص زر التحميل فورًا بحسب حالة السورة الحالية (محمّلة أم لا) */
+async function refreshDl(){
+  const s = $("surah").value, rec = $("reciter").value;
+  let saved = null; try{ saved = await DB.get(keyOf(rec, s)); }catch(e){}
+  if(s !== $("surah").value || rec !== $("reciter").value) return;
+  $("dl").disabled = busy;
+  setBtn("dl", saved ? "التلاوة محمّلة (اضغط للحذف)" : BTN.dl, null, saved ? "ok" : "dl");
+  $("dl").classList.toggle("done", !!saved);
+}
+
 /* ---------- أزرار التحميل ---------- */
 $("dl").onclick = async () => {
   if(busy) return;
@@ -479,11 +489,15 @@ $("dl").onclick = async () => {
       prog(n, name, tot ? size(got) + " من " + size(tot) : size(got));
     });
     prog(null);
-    say("تم تحميل التلاوة. بإمكانك التشغيل بدون انترنت.");
+    busy = false; $("dl").disabled = false; $("dlAll").disabled = false;
+    await refreshDl();                       /* النص يتبدّل فورًا إلى «التلاوة محمّلة» */
     if(audio.paused && $("surah").value === s && $("reciter").value === rec) await load();
-  }catch(e){ prog(null); say("تعذّر التحميل. تحقق من الاتصال وحاول مرة أخرى."); }
-  busy = false; $("dl").disabled = false; $("dlAll").disabled = false;
-  setBtn("dl", BTN.dl, null, "dl");
+    say("تم التحميل. التلاوة متاحة الآن دون إنترنت.");
+  }catch(e){
+    prog(null); say("تعذّر التحميل. تحقق من الاتصال وحاول مرة أخرى.");
+    busy = false; $("dl").disabled = false; $("dlAll").disabled = false;
+    await refreshDl();
+  }
   if(!audio.paused) marks();
 };
 
@@ -517,6 +531,7 @@ $("dlAll").onclick = async () => {
     }catch(e){ failed = true; break; }
   }
   busy = false; $("dl").disabled = false; setBtn("dlAll", BTN.all, null, "dl"); prog(null);
+  refreshDl();
   say(failed ? "توقّف التحميل (تعذّر الاتصال). السور المحمّلة محفوظة، ويمكنك المتابعة لاحقًا." : stopAll ? "تم الإيقاف. السور المحمّلة محفوظة." : "اكتمل تحميل جميع السور.");
   if(audio.paused) load(); else marks();
 };
