@@ -182,7 +182,7 @@ footer{position:fixed;bottom:0;inset-inline:0;background:var(--band);color:var(-
   </div>
   <p class="src">نص القرآن: <a href="https://tanzil.net" target="_blank" rel="noopener">Tanzil Project — tanzil.net</a> (النص العثماني، الإصدار 1.1، برخصة <a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noopener">CC BY 3.0</a>، مضمَّن في التطبيق دون تعديل) · الصوت والتوقيت: <a href="https://quran.com" target="_blank" rel="noopener">Quran.com</a> (عند التحميل) · الخط: Amiri Quran وCairo (مضمَّنان)<br>
   <a href="/privacy.html">سياسة الخصوصية</a> · <a href="/terms.html">اتفاقية الاستخدام</a><br>
-  <span class="ver" id="ver">رقم التحديث: ١٤ · تأريخ التحديث: ١٢ نوفمبر ٢٠٢٦</span></p>
+  <span class="ver" id="ver">رقم التحديث: ١٦ · تأريخ التحديث: ١٤ نوفمبر ٢٠٢٦</span></p>
 </main>
 <footer>
   <span id="time">0:00</span>
@@ -340,6 +340,7 @@ function init(){
   let pm = 0; try{ pm = +localStorage.getItem("pmode") || 0; }catch(e){}
   setMode(pm >= 0 && pm <= 2 ? pm : 0);
   load();
+  restorePos();
 }
 
 async function marks(){
@@ -616,6 +617,50 @@ $("text").onclick = e => {
 
 if("serviceWorker" in navigator){ addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {})); }
 addEventListener("online", () => { if(!busy && audio.paused) load(); });
+/* تذكّر مكان القارئ: أول آية ظاهرة تحت الترويسة تُحفظ في localStorage (المفتاح pos = "السورة:الآية") ويُعاد إليها عند فتح التطبيق؛ لا زر ولا شاشة إضافية. */
+let posT = 0;
+function savePos(){
+  try{
+    const hh = document.querySelector("header").offsetHeight + 8;
+    for(const v of document.querySelectorAll("#text .v")){
+      const r = v.getClientRects()[0];   /* أول سطر من الآية (الآيات متصلة في سطر واحد) */
+      if(r && r.top >= hh - 4){ localStorage.setItem("pos", v.dataset.k); return; }
+    }
+  }catch(e){}
+}
+function restorePos(){
+  try{ history.scrollRestoration = "manual"; }catch(e){}
+  try{
+    const s = +$("surah").value, p = (localStorage.getItem("pos") || "").split(":");
+    if(+p[0] !== s){ localStorage.setItem("pos", s + ":1"); }
+    else if(+p[1] > 1){
+      const el = document.querySelector(`#text .v[data-k="${s}:${+p[1]}"]`);
+      if(el){
+        let moved = false;
+        ["touchstart","wheel","mousedown","keydown"].forEach(ev => addEventListener(ev, () => { moved = true; }, {once:true, passive:true}));
+        const go = () => { if(moved) return; scrollTo(0, Math.max(0, el.getBoundingClientRect().top + scrollY - document.querySelector("header").offsetHeight - 10)); };
+        go();
+        if(document.fonts && document.fonts.ready) document.fonts.ready.then(go);
+        addEventListener("load", go);
+        setTimeout(go, 500);
+      }
+    }
+  }catch(e){}
+  addEventListener("scroll", () => { clearTimeout(posT); posT = setTimeout(savePos, 400); }, {passive:true});
+  document.addEventListener("visibilitychange", () => { if(document.visibilityState === "hidden") savePos(); });
+}
+/* إبقاء الشاشة مضاءة طوال فتح التطبيق (Screen Wake Lock). عند قفل الشاشة بالزر الرئيسي يسقط الطلب تلقائيًا ويستمر الصوت في الخلفية؛ ويُعاد الطلب عند العودة للتطبيق. */
+let wl = null;
+async function keepAwake(){
+  try{
+    if(!("wakeLock" in navigator) || document.visibilityState !== "visible" || wl) return;
+    wl = await navigator.wakeLock.request("screen");
+    wl.addEventListener("release", () => { wl = null; });
+  }catch(e){ wl = null; }
+}
+document.addEventListener("visibilitychange", () => { if(document.visibilityState === "visible") keepAwake(); });
+["click","touchstart","keydown"].forEach(ev => addEventListener(ev, keepAwake, {passive:true}));
+keepAwake();
 init();
 </script>
 </body>
